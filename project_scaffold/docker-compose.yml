@@ -1,0 +1,93 @@
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: auraskin_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-auraskin_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-auraskin_secure_pass_2025}
+      POSTGRES_DB: ${POSTGRES_DB:-auraskin_db}
+    # PostgreSQL is internal only on auraskin-net, not exposed to public host
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-auraskin_user} -d ${POSTGRES_DB:-auraskin_db}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks:
+      - auraskin-net
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: auraskin_backend
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      ENVIRONMENT: production
+      POSTGRES_USER: ${POSTGRES_USER:-auraskin_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-auraskin_secure_pass_2025}
+      POSTGRES_DB: ${POSTGRES_DB:-auraskin_db}
+      POSTGRES_HOST: db
+      POSTGRES_PORT: 5432
+      DATABASE_POOL_SIZE: ${DATABASE_POOL_SIZE:-10}
+      DATABASE_MAX_OVERFLOW: ${DATABASE_MAX_OVERFLOW:-10}
+      DATABASE_POOL_TIMEOUT: ${DATABASE_POOL_TIMEOUT:-30}
+      DATABASE_POOL_RECYCLE: ${DATABASE_POOL_RECYCLE:-1800}
+      WEB_CONCURRENCY: ${WEB_CONCURRENCY:-2}
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY:-auraskin_production_super_jwt_secret_key_change_me_987654321}
+      JWT_ALGORITHM: HS256
+      ACCESS_TOKEN_EXPIRE_MINUTES: 60
+      DEBUG: "False"
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+      ALLOWED_ORIGINS: '["http://localhost:3000", "http://127.0.0.1:3000", "http://localhost:80", "http://127.0.0.1:80"]'
+      FRONTEND_URL: http://localhost:3000
+      SMTP_HOST: ${SMTP_HOST:-smtp.gmail.com}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_USERNAME: ${SMTP_USERNAME:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+      SMTP_FROM_EMAIL: ${SMTP_FROM_EMAIL:-noreply@auraskin.ai}
+      SMTP_FROM_NAME: ${SMTP_FROM_NAME:-AuraSkin AI Skin Intelligence}
+    ports:
+      - "8000:8000"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health/live"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+    networks:
+      - auraskin-net
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: auraskin_frontend
+    restart: unless-stopped
+    depends_on:
+      backend:
+        condition: service_healthy
+    ports:
+      - "3000:80"
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://127.0.0.1/"]
+      interval: 20s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    networks:
+      - auraskin-net
+
+volumes:
+  postgres_data:
+    driver: local
+
+networks:
+  auraskin-net:
+    driver: bridge
