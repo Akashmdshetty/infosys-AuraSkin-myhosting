@@ -3,13 +3,14 @@
 
 services:
   # 1. PostgreSQL Database Service
-  - type: postgres
-    name: auraskin-db
+  databases:
+  - name: auraskin-db
     plan: free
-    ipAllowList: [] # internal access only
+    region: oregon
     databaseName: auraskin_db
     user: auraskin_user
-
+    ipAllowList: []
+    
   # 2. FastAPI Backend Web Service
   - type: web
     name: auraskin-backend
