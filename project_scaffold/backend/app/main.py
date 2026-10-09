@@ -25,47 +25,41 @@ def seed_admin_accounts():
         from app.core.security import get_password_hash
         from app.models.user import RoleEnum, User
 
-        admins_to_seed = [
-            {
-                "email": settings.ADMIN_EMAIL.strip().lower(),
-                "password": settings.ADMIN_PASSWORD,
-                "name": settings.ADMIN_NAME
-            },
-            {
-                "email": "admin@auraskin.ai",
-                "password": "Admin@AuraSkin2025",
-                "name": "AuraSkin System Admin"
-            },
-            {
-                "email": "admin@example.com",
-                "password": "admin123",
-                "name": "Platform Admin"
-            }
-        ]
+        target_email = settings.ADMIN_EMAIL.strip().lower()
+        target_password = settings.ADMIN_PASSWORD
+        target_name = settings.ADMIN_NAME
 
-        for adm in admins_to_seed:
-            if not adm["email"]:
-                continue
-            existing = db.query(User).filter(User.email.ilike(adm["email"])).first()
-            if not existing:
-                new_admin = User(
-                    name=adm["name"],
-                    email=adm["email"],
-                    password_hash=get_password_hash(adm["password"]),
-                    role=RoleEnum.ADMIN,
-                    email_verified=True,
-                    verification_status="VERIFIED"
-                )
-                db.add(new_admin)
-                db.commit()
-                logging.getLogger("auraskin.api").info("Auto-seeded admin account: %s", adm["email"])
-            else:
-                if existing.role != RoleEnum.ADMIN:
-                    existing.role = RoleEnum.ADMIN
-                    existing.verification_status = "VERIFIED"
-                    existing.email_verified = True
+        # Clean up legacy default demo admin accounts if present
+        legacy_admins = ["admin@auraskin.ai", "admin@example.com"]
+        for legacy_email in legacy_admins:
+            if legacy_email.lower() != target_email:
+                leg_user = db.query(User).filter(User.email.ilike(legacy_email)).first()
+                if leg_user:
+                    db.delete(leg_user)
                     db.commit()
-                    logging.getLogger("auraskin.api").info("Promoted %s to ADMIN role.", adm["email"])
+                    logging.getLogger("auraskin.api").info("Removed legacy admin account: %s", legacy_email)
+
+        # Seed or update the primary administrator
+        existing = db.query(User).filter(User.email.ilike(target_email)).first()
+        if not existing:
+            new_admin = User(
+                name=target_name,
+                email=target_email,
+                password_hash=get_password_hash(target_password),
+                role=RoleEnum.ADMIN,
+                email_verified=True,
+                verification_status="VERIFIED"
+            )
+            db.add(new_admin)
+            db.commit()
+            logging.getLogger("auraskin.api").info("Auto-seeded admin account: %s", target_email)
+        else:
+            existing.password_hash = get_password_hash(target_password)
+            existing.role = RoleEnum.ADMIN
+            existing.verification_status = "VERIFIED"
+            existing.email_verified = True
+            db.commit()
+            logging.getLogger("auraskin.api").info("Updated admin account credentials: %s", target_email)
     except Exception as e:
         logging.getLogger("auraskin.api").warning("Could not auto-seed admin accounts: %s", str(e))
     finally:

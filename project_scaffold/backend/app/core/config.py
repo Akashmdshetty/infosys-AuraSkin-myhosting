@@ -73,9 +73,9 @@ class Settings(BaseSettings):
     FRONTEND_URL: str = "http://localhost:3000"
 
     # Default Admin Credentials
-    ADMIN_EMAIL: str = "admin@auraskin.ai"
-    ADMIN_PASSWORD: str = "Admin@AuraSkin2025"
-    ADMIN_NAME: str = "AuraSkin System Admin"
+    ADMIN_EMAIL: str = "aakashdshetty@gmail.com"
+    ADMIN_PASSWORD: str = "aakashshetty112233"
+    ADMIN_NAME: str = "Aakash Shetty (Admin)"
 
     # SMTP Email Configuration
     SMTP_HOST: str = "smtp.gmail.com"

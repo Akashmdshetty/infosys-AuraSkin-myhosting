@@ -4,12 +4,16 @@ import pytest
 from fastapi.testclient import TestClient
 import openpyxl
 
+from app.core.config import settings
+
 # Test User Credentials
 RUN_ID = uuid.uuid4().hex[:6]
 USER_EMAIL = f"m4_user_{RUN_ID}@example.com"
 USER_PWD = "Password123!"
 OTHER_USER_EMAIL = f"m4_other_{RUN_ID}@example.com"
 PROFESSIONAL_EMAIL = f"m4_prof_{RUN_ID}@example.com"
+ADMIN_EMAIL = settings.ADMIN_EMAIL
+ADMIN_PASSWORD = settings.ADMIN_PASSWORD
 
 STATE = {}
 
@@ -218,7 +222,7 @@ def test_m4_08_rbac_data_isolation_and_professional_access(client: TestClient):
     prof_headers = get_auth_headers(client, PROFESSIONAL_EMAIL, USER_PWD, "Dr. Derm", role="DERMATOLOGIST")
     # Verified by Admin
     # First login as admin to verify professional
-    admin_login = client.post("/api/auth/login", json={"email": "admin@example.com", "password": "admin123"})
+    admin_login = client.post("/api/auth/login", json={"email": settings.ADMIN_EMAIL, "password": settings.ADMIN_PASSWORD})
     if admin_login.status_code == 200:
         admin_token = admin_login.json()["access_token"]
         admin_headers = {"Authorization": f"Bearer {admin_token}"}

@@ -6,11 +6,8 @@ from app.core.security import get_password_hash
 
 load_dotenv()
 
-ADMIN_EMAIL = os.getenv('ADMIN_EMAIL')
-ADMIN_PASSWORD = os.getenv('ADMIN_PASSWORD')
-
-if not ADMIN_EMAIL or not ADMIN_PASSWORD:
-    raise RuntimeError('ADMIN_EMAIL and ADMIN_PASSWORD must be set in .env')
+ADMIN_EMAIL = os.getenv('ADMIN_EMAIL', 'aakashdshetty@gmail.com')
+ADMIN_PASSWORD = os.getenv('ADMIN_PASSWORD', 'aakashshetty112233')
 
 def seed_admin():
     db = SessionLocal()

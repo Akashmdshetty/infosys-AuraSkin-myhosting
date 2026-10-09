@@ -6,8 +6,8 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-ADMIN_EMAIL = os.getenv("ADMIN_EMAIL", "admin@example.com")
-ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD", "admin123")
+ADMIN_EMAIL = os.getenv("ADMIN_EMAIL", "aakashdshetty@gmail.com")
+ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD", "aakashshetty112233")
 
 RUN_ID = uuid.uuid4().hex[:6]
 USER_A_EMAIL = f"alice_{RUN_ID}@example.com"

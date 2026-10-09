@@ -10,8 +10,8 @@ from app.core.config import settings
 
 load_dotenv()
 
-ADMIN_EMAIL = os.getenv("ADMIN_EMAIL", "admin@example.com")
-ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD", "admin123")
+ADMIN_EMAIL = os.getenv("ADMIN_EMAIL", "aakashdshetty@gmail.com")
+ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD", "aakashshetty112233")
 
 def test_swagger_and_openapi_documentation(client: TestClient):
     """

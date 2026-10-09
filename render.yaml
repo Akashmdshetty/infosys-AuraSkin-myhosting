@@ -37,6 +37,12 @@ services:
         value: '["https://auraskin-frontend.onrender.com"]'
       - key: FRONTEND_URL
         value: https://auraskin-frontend.onrender.com
+      - key: ADMIN_EMAIL
+        value: aakashdshetty@gmail.com
+      - key: ADMIN_PASSWORD
+        value: aakashshetty112233
+      - key: ADMIN_NAME
+        value: Aakash Shetty (Admin)
 
   # 2. React / Vite Frontend Static Site
   - type: web
