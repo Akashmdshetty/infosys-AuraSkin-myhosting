@@ -34,12 +34,9 @@ services:
       - key: ACCESS_TOKEN_EXPIRE_MINUTES
         value: "60"
       - key: ALLOWED_ORIGINS
-        value: '["*"]'
+        value: '["https://auraskin-frontend.onrender.com"]'
       - key: FRONTEND_URL
-        fromService:
-          type: web
-          name: auraskin-frontend
-          property: host
+        value: https://auraskin-frontend.onrender.com
 
   # 2. React / Vite Frontend Static Site
   - type: web
@@ -55,17 +52,9 @@ services:
         destination: /index.html
     envVars:
       - key: VITE_API_BASE_URL
-        fromService:
-          type: web
-          name: auraskin-backend
-          property: host
-          transform: "https://{{value}}/api"
+        value: https://auraskin-backend.onrender.com/api
       - key: VITE_HEALTH_URL
-        fromService:
-          type: web
-          name: auraskin-backend
-          property: host
-          transform: "https://{{value}}/health"
+        value: https://auraskin-backend.onrender.com/health
 
 databases:
   # 3. PostgreSQL Database
