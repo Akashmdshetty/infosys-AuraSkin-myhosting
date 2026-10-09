@@ -1,20 +1,12 @@
+
 # Render.com Infrastructure as Code Blueprint
 # AuraSkin — AI Skin Intelligence & Personalized Skincare Planner
 
 services:
-  # 1. PostgreSQL Database Service
-  databases:
-  - name: auraskin-db
-    plan: free
-    region: oregon
-    databaseName: auraskin_db
-    user: auraskin_user
-    ipAllowList: []
-    
-  # 2. FastAPI Backend Web Service
+  # 1. FastAPI Backend Web Service
   - type: web
     name: auraskin-backend
-    env: python
+    runtime: python
     region: oregon
     plan: free
     rootDir: project_scaffold/backend
@@ -47,12 +39,10 @@ services:
           name: auraskin-frontend
           property: host
 
-  # 3. React / Vite Frontend Static Site
+  # 2. React / Vite Frontend Static Site
   - type: web
     name: auraskin-frontend
-    env: static
-    region: oregon
-    plan: free
+    runtime: static
     rootDir: project_scaffold/frontend
     buildCommand: "npm install && npm run build"
     staticPublishPath: dist
@@ -74,3 +64,12 @@ services:
           name: auraskin-backend
           property: host
           transform: "https://{{value}}/health"
+
+databases:
+  # 3. PostgreSQL Database
+  - name: auraskin-db
+    plan: free
+    region: oregon
+    databaseName: auraskin_db
+    user: auraskin_user
+    ipAllowList: []
