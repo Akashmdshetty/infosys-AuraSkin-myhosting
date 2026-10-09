@@ -18,6 +18,65 @@ try:
 except Exception:
     pass
 
+def seed_admin_accounts():
+    """Auto-seed default and configured administrator accounts if not yet created."""
+    db = SessionLocal()
+    try:
+        from app.core.security import get_password_hash
+        from app.models.user import RoleEnum, User
+
+        admins_to_seed = [
+            {
+                "email": settings.ADMIN_EMAIL.strip().lower(),
+                "password": settings.ADMIN_PASSWORD,
+                "name": settings.ADMIN_NAME
+            },
+            {
+                "email": "admin@auraskin.ai",
+                "password": "Admin@AuraSkin2025",
+                "name": "AuraSkin System Admin"
+            },
+            {
+                "email": "admin@example.com",
+                "password": "admin123",
+                "name": "Platform Admin"
+            }
+        ]
+
+        for adm in admins_to_seed:
+            if not adm["email"]:
+                continue
+            existing = db.query(User).filter(User.email.ilike(adm["email"])).first()
+            if not existing:
+                new_admin = User(
+                    name=adm["name"],
+                    email=adm["email"],
+                    password_hash=get_password_hash(adm["password"]),
+                    role=RoleEnum.ADMIN,
+                    email_verified=True,
+                    verification_status="VERIFIED"
+                )
+                db.add(new_admin)
+                db.commit()
+                logging.getLogger("auraskin.api").info("Auto-seeded admin account: %s", adm["email"])
+            else:
+                if existing.role != RoleEnum.ADMIN:
+                    existing.role = RoleEnum.ADMIN
+                    existing.verification_status = "VERIFIED"
+                    existing.email_verified = True
+                    db.commit()
+                    logging.getLogger("auraskin.api").info("Promoted %s to ADMIN role.", adm["email"])
+    except Exception as e:
+        logging.getLogger("auraskin.api").warning("Could not auto-seed admin accounts: %s", str(e))
+    finally:
+        db.close()
+
+# Run admin seeding
+try:
+    seed_admin_accounts()
+except Exception:
+    pass
+
 from app.api import (
     auth, users, skin_profile, lifestyle, sleep, hydration, environmental_exposure,
     admin, skin_intelligence, professional, ingredient_intelligence, product_intelligence,
@@ -38,6 +97,13 @@ app = FastAPI(
     docs_url="/docs" if settings.DEBUG or settings.ENVIRONMENT != "production" else "/docs",
     redoc_url="/redoc" if settings.DEBUG or settings.ENVIRONMENT != "production" else "/redoc",
 )
+
+@app.on_event("startup")
+async def on_startup():
+    try:
+        seed_admin_accounts()
+    except Exception:
+        pass
 
 # Correlation ID & Performance & Security Headers Middleware
 @app.middleware("http")

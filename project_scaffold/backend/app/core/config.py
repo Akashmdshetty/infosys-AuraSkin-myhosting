@@ -68,10 +68,14 @@ class Settings(BaseSettings):
                     pass
             return [origin.strip() for origin in v_clean.split(",") if origin.strip()]
         return v
-        return v
 
     # Frontend URL for link generation
     FRONTEND_URL: str = "http://localhost:3000"
+
+    # Default Admin Credentials
+    ADMIN_EMAIL: str = "admin@auraskin.ai"
+    ADMIN_PASSWORD: str = "Admin@AuraSkin2025"
+    ADMIN_NAME: str = "AuraSkin System Admin"
 
     # SMTP Email Configuration
     SMTP_HOST: str = "smtp.gmail.com"
