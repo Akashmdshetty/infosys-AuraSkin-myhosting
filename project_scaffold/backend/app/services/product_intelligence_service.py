@@ -579,31 +579,39 @@ def get_alternative_products(
     reason = (
         "; ".join(target_eval.potential_conflicts)
         if target_eval.potential_conflicts
-        else "Looking for enhanced formulation or alternative price points."
+        else "Looking for enhanced biocompatibility, better active ingredient synergies, or alternate budget tiers."
     )
 
-    # Find alternatives in the same category or general safe products
+    # Find alternatives in the same category first
     candidates = db.query(Product).filter(
         Product.id != product_id,
         Product.category == target_prod.category,
         Product.status == "ACTIVE"
     ).all()
 
-    # If category only has 1 product, widen to all products
+    # If same category has fewer than 2 items, widen to general catalog
     if len(candidates) < 2:
-        candidates = db.query(Product).filter(Product.id != product_id, Product.status == "ACTIVE").all()
+        all_active = db.query(Product).filter(Product.id != product_id, Product.status == "ACTIVE").all()
+        candidates.extend([p for p in all_active if p.id not in [c.id for c in candidates]])
 
     alternatives_eval: List[ProductSuitabilityDetail] = []
     for c in candidates:
         detail = evaluate_product_suitability(c, user)
-        # Only suggest safe alternatives
-        if detail.suitability_score >= 70 and not any("ALLERGY" in conf for conf in detail.potential_conflicts):
+        # Prioritize allergen-free candidates
+        if not any("ALLERGY" in conf for conf in detail.potential_conflicts):
             alternatives_eval.append(detail)
 
-    alternatives_eval.sort(key=lambda x: -x.suitability_score)
+    # If all candidates had conflicts (unlikely), evaluate without strict allergen filter
+    if not alternatives_eval:
+        for c in candidates:
+            alternatives_eval.append(evaluate_product_suitability(c, user))
+
+    # Sort alternatives by highest suitability score, then by lowest price
+    alternatives_eval.sort(key=lambda x: (-x.suitability_score, x.price))
 
     return AlternativeProductsResponse(
         unsuitable_product=target_eval.product,
         unsuitability_reason=reason,
-        alternatives=alternatives_eval[:5]
+        alternatives=alternatives_eval[:6]
     )
+

@@ -1,0 +1,161 @@
+import React, { useState, useEffect } from 'react';
+import { DashboardHeader } from './DashboardHeader';
+import { SkinScoreCard } from './SkinScoreCard';
+import { ScoreBreakdownCard } from './ScoreBreakdownCard';
+import { ProfileCompletionCard } from './ProfileCompletionCard';
+import { TrackersCard } from './TrackersCard';
+import { SkinIntelligenceInsightCard } from './SkinIntelligenceInsightCard';
+import { ScoreTrendCard } from './ScoreTrendCard';
+import { RoutinePlannerCard } from './RoutinePlannerCard';
+import { EvidenceRecommendationsCard } from './EvidenceRecommendationsCard';
+import { DermalSphereVisual } from './DermalSphereVisual';
+import { api, ProductSuitabilityDetail } from '../services/api';
+import { ShoppingBag, BookOpen, TrendingUp, Sparkles, ArrowRight, ShieldCheck, CheckCircle2 } from 'lucide-react';
+
+interface ClientDashboardViewProps {
+  onNavigate: (tab: string) => void;
+}
+
+export const ClientDashboardView: React.FC<ClientDashboardViewProps> = ({ onNavigate }) => {
+  const [topRecs, setTopRecs] = useState<ProductSuitabilityDetail[]>([]);
+  const [loadingRecs, setLoadingRecs] = useState<boolean>(false);
+
+  useEffect(() => {
+    setLoadingRecs(true);
+    api.getProductRecommendations({ limit: 3 })
+      .then((res) => setTopRecs(res.recommendations || []))
+      .catch(() => setTopRecs([]))
+      .finally(() => setLoadingRecs(false));
+  }, []);
+
+  return (
+    <div className="sample-container animate-fade-in py-6">
+      {/* 1. Hero / Welcome Section with Neural Particle Canvas */}
+      <DashboardHeader onNavigateToDataEntry={() => onNavigate('data-entry')} />
+
+      {/* Quick Launch Interactive Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+        {/* Products Card */}
+        <div
+          onClick={() => onNavigate('products')}
+          className="bg-gradient-to-br from-teal-900 to-teal-800 text-white rounded-2xl p-5 shadow-sm hover:shadow-md cursor-pointer transition border border-teal-700/50 group"
+        >
+          <div className="flex items-center justify-between">
+            <div className="p-2.5 bg-white/10 rounded-xl">
+              <ShoppingBag className="w-5 h-5 text-teal-300" />
+            </div>
+            <ArrowRight className="w-4 h-4 text-teal-300 group-hover:translate-x-1 transition" />
+          </div>
+          <h3 className="text-sm font-bold mt-3">Product Intelligence</h3>
+          <p className="text-xs text-teal-200 mt-1">Biocompatible products & personalized suitability scores</p>
+        </div>
+
+        {/* Ingredients Card */}
+        <div
+          onClick={() => onNavigate('ingredients')}
+          className="bg-gradient-to-br from-slate-900 to-indigo-950 text-white rounded-2xl p-5 shadow-sm hover:shadow-md cursor-pointer transition border border-indigo-900/50 group"
+        >
+          <div className="flex items-center justify-between">
+            <div className="p-2.5 bg-white/10 rounded-xl">
+              <BookOpen className="w-5 h-5 text-indigo-300" />
+            </div>
+            <ArrowRight className="w-4 h-4 text-indigo-300 group-hover:translate-x-1 transition" />
+          </div>
+          <h3 className="text-sm font-bold mt-3">Ingredient Encyclopedia</h3>
+          <p className="text-xs text-indigo-200 mt-1">4-tier INCI safety scanner & chemical interaction matrix</p>
+        </div>
+
+        {/* Progress Card */}
+        <div
+          onClick={() => onNavigate('progress')}
+          className="bg-gradient-to-br from-teal-950 to-cyan-950 text-white rounded-2xl p-5 shadow-sm hover:shadow-md cursor-pointer transition border border-cyan-900/50 group"
+        >
+          <div className="flex items-center justify-between">
+            <div className="p-2.5 bg-white/10 rounded-xl">
+              <TrendingUp className="w-5 h-5 text-cyan-300" />
+            </div>
+            <ArrowRight className="w-4 h-4 text-cyan-300 group-hover:translate-x-1 transition" />
+          </div>
+          <h3 className="text-sm font-bold mt-3">Skin Journey & Adherence</h3>
+          <p className="text-xs text-cyan-200 mt-1">Longitudinal clinical analysis & daily adherence logs</p>
+        </div>
+      </div>
+
+      {/* 2. Top Row: 3D Centerpiece Gauge, 5-Factor Breakdown & Profile Completion */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+        <div className="lg:col-span-2 space-y-6">
+          <SkinScoreCard />
+          <ScoreBreakdownCard />
+        </div>
+        <div className="space-y-6">
+          <ProfileCompletionCard onNavigateToDataEntry={() => onNavigate('data-entry')} />
+          <DermalSphereVisual />
+        </div>
+      </div>
+
+      {/* 3. AI Intelligence Insight & Historical Trend Row */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+        <SkinIntelligenceInsightCard onNavigateToDataEntry={() => onNavigate('data-entry')} />
+        <ScoreTrendCard />
+      </div>
+
+      {/* 4. Personalized Products Spotlight */}
+      {topRecs.length > 0 && (
+        <div className="mb-6 sample-card">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <span className="section-label text-teal-700">Matched For You</span>
+              <h2 className="text-lg font-extrabold text-slate-900 mt-0.5">Top Recommended Products</h2>
+            </div>
+            <button
+              onClick={() => onNavigate('products')}
+              className="text-xs font-bold text-teal-700 hover:text-teal-800 flex items-center gap-1"
+            >
+              Explore Full Catalog <ArrowRight size={14} />
+            </button>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {topRecs.map((rec) => (
+              <div
+                key={rec.product.id}
+                onClick={() => onNavigate('products')}
+                className="p-4 rounded-xl border border-slate-200/80 bg-white hover:border-teal-500/50 hover:shadow-md transition cursor-pointer flex flex-col justify-between"
+              >
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-100 text-slate-700 uppercase">
+                      {rec.product.category}
+                    </span>
+                    <span className="text-xs font-extrabold text-teal-700 bg-teal-50 px-2 py-0.5 rounded-full border border-teal-200">
+                      {rec.suitability_score}% Match
+                    </span>
+                  </div>
+                  <h4 className="text-sm font-bold text-slate-900 line-clamp-1">{rec.product.name}</h4>
+                  <p className="text-xs text-slate-500 font-medium">{rec.product.brand}</p>
+                </div>
+                <div className="mt-3 pt-3 border-t border-slate-100 flex items-center justify-between text-xs">
+                  <span className="text-slate-800 font-extrabold">₹{rec.product.price.toLocaleString('en-IN')}</span>
+                  <span className="text-teal-700 font-bold flex items-center gap-1">
+                    <Sparkles size={12} /> View Details
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* 5. Routine Planner & Evidence Recommendations */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+        <RoutinePlannerCard />
+        <EvidenceRecommendationsCard />
+      </div>
+
+      {/* 6. Daily Trackers */}
+      <div className="mb-6">
+        <TrackersCard />
+      </div>
+    </div>
+  );
+};

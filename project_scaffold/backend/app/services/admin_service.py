@@ -134,3 +134,35 @@ def get_platform_analytics(db: Session) -> dict:
         "database_health": "CONNECTED",
         "version": "4.0.0"
     }
+
+def update_user_role(db: Session, user_id: int, new_role: RoleEnum, new_status: VerificationStatus = None) -> UserResponse:
+    logger.info("Admin updating user_id=%s role to %s", user_id, new_role.value)
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+
+    user.role = new_role
+    if new_status is not None:
+        user.verification_status = new_status
+    elif new_role in [RoleEnum.SKINCARE_CONSULTANT, RoleEnum.DERMATOLOGIST]:
+        # If promoting to professional, ensure verified status if admin explicitly assigned
+        user.verification_status = VerificationStatus.VERIFIED
+
+    db.commit()
+    db.refresh(user)
+    return UserResponse.model_validate(user)
+
+def update_user_status(db: Session, user_id: int, new_status: VerificationStatus) -> UserResponse:
+    logger.info("Admin updating user_id=%s status to %s", user_id, new_status.value)
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+
+    user.verification_status = new_status
+    if new_status == VerificationStatus.VERIFIED and user.requested_role:
+        user.role = user.requested_role
+
+    db.commit()
+    db.refresh(user)
+    return UserResponse.model_validate(user)
+

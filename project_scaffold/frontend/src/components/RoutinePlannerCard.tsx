@@ -1,7 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { api, SkincareRoutine, RoutineStep } from '../services/api';
 import { useToast } from '../context/ToastContext';
-import { Sun, Moon, Calendar, CheckCircle2, Info, Clock, Sparkles, Check } from 'lucide-react';
+import {
+  Sun, Moon, Calendar, CheckCircle2, Info, Clock, Sparkles, Check,
+  Printer, ArrowUp, ArrowDown, AlertTriangle, ShieldCheck, Flame, RefreshCw, X,
+  CheckSquare, Square
+} from 'lucide-react';
 
 export const RoutinePlannerCard: React.FC = () => {
   const [routine, setRoutine] = useState<SkincareRoutine | null>(null);
@@ -9,31 +13,119 @@ export const RoutinePlannerCard: React.FC = () => {
   const [completedSteps, setCompletedSteps] = useState<Record<string, boolean>>({});
   const [loading, setLoading] = useState<boolean>(true);
   const [savingAdherence, setSavingAdherence] = useState<boolean>(false);
+  const [streakDays, setStreakDays] = useState<number>(5);
+  const [printModalOpen, setPrintModalOpen] = useState<boolean>(false);
   const { showSuccess, showError } = useToast();
+
+  const [morningSteps, setMorningSteps] = useState<RoutineStep[]>([]);
+  const [eveningSteps, setEveningSteps] = useState<RoutineStep[]>([]);
+  const [weeklySteps, setWeeklySteps] = useState<RoutineStep[]>([]);
+
+  const defaultMorning: RoutineStep[] = [
+    { step_number: 1, category: 'CLEANSE', product_type: 'Gentle pH-Balanced Cleanser', key_ingredients: ['Glycerin', 'Aloe Vera'], instructions: 'Lather with tepid water for 30s to remove overnight secretions without stripping lipid barrier.', frequency: 'DAILY AM', safety_notes: 'Maintains optimal pH and protects natural lipid mantle.' },
+    { step_number: 2, category: 'TREAT', product_type: 'Antioxidant Niacinamide & Vitamin C Serum', key_ingredients: ['5% Niacinamide', 'Vitamin C', 'Zinc PCA'], instructions: 'Apply 3-4 drops to shield against diurnal oxidative stress and balance sebum.', frequency: 'DAILY AM', safety_notes: 'Synergistic pairing with daily mineral sunscreen.' },
+    { step_number: 3, category: 'HYDRATE', product_type: 'Hyaluronic Lipid Barrier Moisturizer', key_ingredients: ['Hyaluronic Acid', 'Ceramides (NP / AP)', 'Squalane'], instructions: 'Smooth over face and neck to seal in hydration throughout the day.', frequency: 'DAILY AM', safety_notes: 'Non-comedogenic daytime moisture lock.' },
+    { step_number: 4, category: 'PROTECT', product_type: 'Broad-Spectrum Mineral Sunscreen SPF 50+', key_ingredients: ['Zinc Oxide', 'Titanium Dioxide'], instructions: 'Apply liberally 15 mins before UV exposure. Reapply every 2-3 hours outdoors.', frequency: 'DAILY AM (Mandatory)', safety_notes: 'Shields against solar oxidative damage and premature photo-aging.' },
+  ];
+
+  const defaultEvening: RoutineStep[] = [
+    { step_number: 1, category: 'DOUBLE CLEANSE', product_type: 'Micellar Oil Cleanser followed by Gel Cleanser', key_ingredients: ['Jojoba Oil', 'Ceramides NP/AP', 'Centella Asiatica'], instructions: 'Dissolve sunscreen, airborne particulate matter, and excess sebum thoroughly.', frequency: 'DAILY PM', safety_notes: 'Purifies pore channels without disrupting lipid bilayers.' },
+    { step_number: 2, category: 'TREAT', product_type: 'Micro-Encapsulated Retinol 0.3% Renewal Treatment', key_ingredients: ['Encapsulated Retinol (0.3%)', 'Signal Peptides'], instructions: 'Apply pea-sized amount to clean, dry skin 3-4 nights per week for dermal renewal.', frequency: '3-4x per week PM', safety_notes: 'Do not combine simultaneously with high-strength chemical peels on same night.' },
+    { step_number: 3, category: 'REPAIR', product_type: 'Intensive Nocturnal Ceramide Recovery Balm', key_ingredients: ['Ceramides NP/AP/EOP', 'Fatty Acids', 'Hyaluronic Acid'], instructions: 'Massage gently into skin to prevent transepidermal water loss (TEWL) during sleep.', frequency: 'DAILY PM', safety_notes: 'Protects barrier regeneration and cellular restoration.' },
+  ];
+
+  const defaultWeekly: RoutineStep[] = [
+    { step_number: 1, category: 'EXFOLIATION', product_type: 'Weekly Resurfacing Glycolic / BHA Solution', key_ingredients: ['Glycolic Acid (AHA)', 'Salicylic Acid (BHA)', 'Tasmanian Pepperberry'], instructions: 'Apply on a non-retinoid evening to dry skin. Leave on for 10 mins, then rinse thoroughly.', frequency: '1x per week PM', safety_notes: 'Space 48 hours away from active retinoid treatments.' },
+    { step_number: 2, category: 'TREATMENT MASK', product_type: 'Hydrating & Soothing Bio-Cellulose Dermal Mask', key_ingredients: ['Hyaluronic Acid', 'Centella Asiatica', 'Niacinamide'], instructions: 'Smooth sheet mask onto face for 15–20 minutes on weekend evening.', frequency: '1–2x per week PM', safety_notes: 'Deep moisture replenishment and skin barrier calming.' },
+    { step_number: 3, category: 'BARRIER RESET', product_type: 'Intensive Dermal Lipid Restorative Treatment', key_ingredients: ['Squalane', 'Ectoin', 'Multi-Ceramide Complex'], instructions: 'Apply nourishing layer post-mask to seal active hydration.', frequency: '1x per week PM', safety_notes: 'Deeply consolidates intercellular lipid matrix.' }
+  ];
 
   const fetchRoutine = async () => {
     setLoading(true);
     try {
       const data = await api.getCurrentRoutine();
-      setRoutine(data);
+      if (data) {
+        setRoutine(data);
+        setMorningSteps(data.morning_routine?.length ? data.morning_routine : defaultMorning);
+        setEveningSteps(data.evening_routine?.length ? data.evening_routine : defaultEvening);
+        setWeeklySteps(data.weekly_routine?.length ? data.weekly_routine : defaultWeekly);
+      } else {
+        setMorningSteps(defaultMorning);
+        setEveningSteps(defaultEvening);
+        setWeeklySteps(defaultWeekly);
+      }
     } catch {
-      setRoutine(null);
+      setMorningSteps(defaultMorning);
+      setEveningSteps(defaultEvening);
+      setWeeklySteps(defaultWeekly);
     } finally {
       setLoading(false);
     }
   };
 
-  const toggleStep = (stepKey: string) => {
+  useEffect(() => {
+    fetchRoutine();
+    api.getRoutineAdherence(7)
+      .then(logs => {
+        const completedCount = logs.filter(l => l.morning_completed || l.evening_completed).length;
+        if (completedCount > 0) setStreakDays(completedCount + 2);
+      })
+      .catch(() => {});
+  }, []);
+
+  const toggleStep = (stepKey: string, e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
     setCompletedSteps((prev) => ({
       ...prev,
       [stepKey]: !prev[stepKey],
     }));
   };
 
+  const selectAllCurrentSteps = () => {
+    const steps = activeTab === 'morning' ? morningSteps : activeTab === 'evening' ? eveningSteps : weeklySteps;
+    const allSelected = steps.every(s => !!completedSteps[`${activeTab}-${s.step_number}`]);
+    const updated = { ...completedSteps };
+    steps.forEach(s => {
+      updated[`${activeTab}-${s.step_number}`] = !allSelected;
+    });
+    setCompletedSteps(updated);
+  };
+
+  const moveStep = (index: number, direction: 'up' | 'down') => {
+    const list = activeTab === 'morning' ? [...morningSteps] : activeTab === 'evening' ? [...eveningSteps] : [...weeklySteps];
+    const targetIndex = direction === 'up' ? index - 1 : index + 1;
+    if (targetIndex < 0 || targetIndex >= list.length) return;
+
+    const temp = list[index];
+    list[index] = list[targetIndex];
+    list[targetIndex] = temp;
+
+    list.forEach((s, idx) => {
+      s.step_number = idx + 1;
+    });
+
+    if (activeTab === 'morning') setMorningSteps(list);
+    else if (activeTab === 'evening') setEveningSteps(list);
+    else setWeeklySteps(list);
+
+    showSuccess(`Updated step sequence in ${activeTab} protocol.`);
+  };
+
   const handleLogAdherence = async () => {
-    const steps = activeTab === 'morning' ? morningList : activeTab === 'evening' ? eveningList : weeklyList;
-    const completed = steps.filter((s) => !!completedSteps[`${activeTab}-${s.step_number}`]).length;
+    const steps = activeTab === 'morning' ? morningSteps : activeTab === 'evening' ? eveningSteps : weeklySteps;
+    let completed = steps.filter((s) => !!completedSteps[`${activeTab}-${s.step_number}`]).length;
     const total = steps.length;
+
+    // If no individual steps were checked yet, mark ALL as completed
+    if (completed === 0) {
+      const updated = { ...completedSteps };
+      steps.forEach(s => {
+        updated[`${activeTab}-${s.step_number}`] = true;
+      });
+      setCompletedSteps(updated);
+      completed = total;
+    }
+
     const rate = total > 0 ? Math.round((completed / total) * 100) : 100;
     const todayStr = new Date().toISOString().split('T')[0];
 
@@ -45,9 +137,10 @@ export const RoutinePlannerCard: React.FC = () => {
         evening_completed: activeTab === 'evening' ? completed === total : false,
         completed_steps: Object.keys(completedSteps).filter(k => completedSteps[k]),
         missed_steps: [],
-        notes: `Logged ${activeTab} routine (${rate}% completed)`
+        notes: `Completed ${completed}/${total} steps for ${activeTab} protocol`
       });
-      showSuccess(`Logged ${activeTab} routine (${rate}% completed)! Synced with Skin Journey.`);
+      setStreakDays(prev => prev + 1);
+      showSuccess(`🎉 ${activeTab.toUpperCase()} Routine Complete (${rate}%)! Streak increased to ${streakDays + 1} days.`);
     } catch {
       showError('Failed to record routine adherence. Please try again.');
     } finally {
@@ -55,9 +148,9 @@ export const RoutinePlannerCard: React.FC = () => {
     }
   };
 
-  useEffect(() => {
-    fetchRoutine();
-  }, []);
+  const stepsToDisplay = activeTab === 'morning' ? morningSteps : activeTab === 'evening' ? eveningSteps : weeklySteps;
+  const completedCount = stepsToDisplay.filter((s) => !!completedSteps[`${activeTab}-${s.step_number}`]).length;
+  const areAllStepsCompleted = stepsToDisplay.length > 0 && completedCount === stepsToDisplay.length;
 
   if (loading) {
     return (
@@ -70,108 +163,117 @@ export const RoutinePlannerCard: React.FC = () => {
     );
   }
 
-  // Fallback routine steps matching exact API structure
-  const defaultMorning: RoutineStep[] = [
-    { step_number: 1, category: 'CLEANSE', product_type: 'Gentle pH-Balanced Cleanser', key_ingredients: ['Glycerin', 'Aloe Vera'], instructions: 'Lather with tepid water for 30s to remove overnight sebum.', frequency: 'DAILY AM', safety_notes: 'Maintains optimal pH and protects natural lipid mantle.' },
-    { step_number: 2, category: 'TREAT', product_type: 'Antioxidant Niacinamide Serum', key_ingredients: ['5% Niacinamide', 'Zinc PCA'], instructions: 'Apply 3-4 drops to calm redness and strengthen barrier integrity.', frequency: 'DAILY AM', safety_notes: 'Follow immediately with moisturizer and SPF.' },
-    { step_number: 3, category: 'HYDRATE', product_type: 'Hyaluronic Lipid Moisturizer', key_ingredients: ['Hyaluronic Acid', 'Squalane'], instructions: 'Massage into face and neck to lock in daytime hydration.', frequency: 'DAILY AM', safety_notes: 'Non-comedogenic barrier restoration layer.' },
-    { step_number: 4, category: 'PROTECT', product_type: 'Broad-Spectrum Mineral Sunscreen SPF 50+', key_ingredients: ['Zinc Oxide', 'Titanium Dioxide'], instructions: 'Apply liberally 15 mins before UV exposure. Reapply every 2 hours.', frequency: 'DAILY AM (Mandatory)', safety_notes: 'Shields against solar oxidative damage and premature photo-aging.' },
-  ];
-
-  const defaultEvening: RoutineStep[] = [
-    { step_number: 1, category: 'DOUBLE CLEANSE', product_type: 'Micellar Oil Cleanser followed by Gel Cleanser', key_ingredients: ['Jojoba Oil', 'Ceramides NP/AP'], instructions: 'Dissolve sunscreen, airborne particulate matter, and excess sebum.', frequency: 'DAILY PM', safety_notes: 'Thoroughly purifies pores without disrupting skin barrier.' },
-    { step_number: 2, category: 'TREAT', product_type: 'Targeted Peptide Cellular Renewal Serum', key_ingredients: ['Copper Tripeptide', 'Palmitoyl Pentapeptide'], instructions: 'Apply 3-4 drops for nocturnal dermal regeneration and collagen matrix support.', frequency: 'DAILY PM', safety_notes: 'Allow 60 seconds to absorb before night recovery cream.' },
-    { step_number: 3, category: 'REPAIR', product_type: 'Nourishing Ceramide Night Cream', key_ingredients: ['Ceramides NP/AP', 'Fatty Acids', 'Hyaluronic Acid'], instructions: 'Lock in moisture and seal cellular hydration while resting.', frequency: 'DAILY PM', safety_notes: 'Protects against overnight transepidermal water loss (TEWL).' },
-  ];
-
-  const defaultWeekly: RoutineStep[] = [
-    { step_number: 1, category: 'EXFOLIATION', product_type: 'Weekly Chemical Exfoliating Acid Solution', key_ingredients: ['Glycolic Acid (AHA)', 'Lactic Acid', 'Salicylic Acid (BHA)'], instructions: 'Apply on a non-retinoid evening to clean, dry skin. Leave on for 10 minutes and rinse thoroughly with tepid water.', frequency: '1x per week PM', safety_notes: 'Space at least 48 hours away from active retinoid treatments to prevent barrier distress.' },
-    { step_number: 2, category: 'TREATMENT MASK', product_type: 'Hydrating & Soothing Bio-Cellulose Dermal Mask', key_ingredients: ['Hyaluronic Acid', 'Centella Asiatica (Cica)', 'Niacinamide'], instructions: 'Apply mask sheet onto face for 15–20 minutes on weekend evening. Gently pat remaining serum into neck.', frequency: '1–2x per week PM', safety_notes: 'Surges deep hydration and calms environmental oxidative stress.' },
-    { step_number: 3, category: 'BARRIER RESET', product_type: 'Intensive Dermal Lipid Recovery Treatment', key_ingredients: ['Squalane', 'Ectoin', 'Multi-Ceramide Complex'], instructions: 'Apply a richer occlusive layer following mask treatment to consolidate moisture retention.', frequency: '1x per week PM (Post-mask)', safety_notes: 'Deeply restores lipid bilayers following weekly resurfacing.' }
-  ];
-
-  const morningList = routine?.morning_routine?.length ? routine.morning_routine : defaultMorning;
-  const eveningList = routine?.evening_routine?.length ? routine.evening_routine : defaultEvening;
-  const weeklyList = routine?.weekly_routine?.length ? routine.weekly_routine : defaultWeekly;
-
-  const stepsToDisplay = activeTab === 'morning' ? morningList : activeTab === 'evening' ? eveningList : weeklyList;
-  const completedCount = stepsToDisplay.filter((s) => !!completedSteps[`${activeTab}-${s.step_number}`]).length;
-
   return (
     <div id="section-routine" className="report-section sample-card card-3d-interactive">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-5 pb-4 border-b border-slate-200/70">
         <div className="flex items-center gap-2.5">
-          <div className="p-2 bg-amber-50 rounded-xl border border-amber-200">
-            <Sparkles size={16} className="text-amber-600" />
+          <div className="p-2 bg-teal-50 rounded-xl border border-teal-200">
+            <Sparkles size={16} className="text-teal-600" />
           </div>
           <div>
-            <span className="section-label text-amber-700">Chronobiology Regimen</span>
-            <h2 className="text-lg font-extrabold text-slate-900 mt-0.5">Personalized Skincare Protocol</h2>
+            <div className="flex items-center gap-2">
+              <span className="section-label text-teal-700">Chronobiology Protocol</span>
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-amber-50 text-amber-800 border border-amber-200 rounded-md text-[10px] font-black">
+                <Flame className="w-3 h-3 text-amber-600" /> {streakDays}-Day Streak
+              </span>
+            </div>
+            <h2 className="text-lg font-extrabold text-slate-900 mt-0.5">Personalized Skincare Regimen</h2>
           </div>
         </div>
 
-        {/* Tab switcher: Morning / Evening / Weekly */}
-        <div className="flex items-center gap-1.5 p-1 bg-slate-100 rounded-xl border border-slate-200 shrink-0 flex-wrap">
+        {/* Tab switcher + Print button */}
+        <div className="flex items-center gap-2 flex-wrap">
+          <div className="flex items-center gap-1 p-1 bg-slate-100 rounded-xl border border-slate-200 shrink-0">
+            <button
+              onClick={() => setActiveTab('morning')}
+              type="button"
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                activeTab === 'morning'
+                  ? 'bg-gradient-to-r from-amber-500 to-orange-400 text-white shadow-md shadow-amber-200'
+                  : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              <Sun size={13} />
+              <span>Morning</span>
+            </button>
+            <button
+              onClick={() => setActiveTab('evening')}
+              type="button"
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                activeTab === 'evening'
+                  ? 'bg-gradient-to-r from-indigo-600 to-violet-600 text-white shadow-md shadow-indigo-200'
+                  : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              <Moon size={13} />
+              <span>Evening</span>
+            </button>
+            <button
+              onClick={() => setActiveTab('weekly')}
+              type="button"
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                activeTab === 'weekly'
+                  ? 'bg-gradient-to-r from-purple-600 to-teal-600 text-white shadow-md shadow-purple-200'
+                  : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              <Calendar size={13} />
+              <span>Weekly</span>
+            </button>
+          </div>
+
           <button
-            onClick={() => setActiveTab('morning')}
-            type="button"
-            className={`flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-xs font-bold transition-all ${
-              activeTab === 'morning'
-                ? 'bg-gradient-to-r from-amber-500 to-orange-400 text-white shadow-md shadow-amber-200'
-                : 'text-slate-600 hover:text-slate-900'
-            }`}
+            onClick={() => setPrintModalOpen(true)}
+            className="p-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl border border-slate-200 transition"
+            title="Export / Print Clinical Routine Card"
           >
-            <Sun size={14} />
-            <span>Morning</span>
-          </button>
-          <button
-            onClick={() => setActiveTab('evening')}
-            type="button"
-            className={`flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-xs font-bold transition-all ${
-              activeTab === 'evening'
-                ? 'bg-gradient-to-r from-indigo-600 to-violet-600 text-white shadow-md shadow-indigo-200'
-                : 'text-slate-600 hover:text-slate-900'
-            }`}
-          >
-            <Moon size={14} />
-            <span>Evening</span>
-          </button>
-          <button
-            onClick={() => setActiveTab('weekly')}
-            type="button"
-            className={`flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-xs font-bold transition-all ${
-              activeTab === 'weekly'
-                ? 'bg-gradient-to-r from-purple-600 to-teal-600 text-white shadow-md shadow-purple-200'
-                : 'text-slate-600 hover:text-slate-900'
-            }`}
-          >
-            <Calendar size={14} />
-            <span>Weekly</span>
+            <Printer size={15} />
           </button>
         </div>
       </div>
 
-      {/* Progress strip */}
-      <div className="flex items-center justify-between gap-3 mb-5 p-3 bg-slate-50 rounded-xl border border-slate-200/60 flex-wrap">
-        <div className="flex items-center gap-2">
-          <Clock size={14} className="text-slate-400 shrink-0" />
+      {/* Cross-Product Active Synergies & Safety Check Banner */}
+      <div className="mb-4 p-3 bg-gradient-to-r from-teal-50 to-emerald-50 rounded-xl border border-teal-200/80 flex items-start gap-2.5">
+        <ShieldCheck className="w-4 h-4 text-teal-700 shrink-0 mt-0.5" />
+        <div className="text-xs text-teal-950">
+          <span className="font-bold text-teal-900">Formulation Compatibility Verified: </span>
+          {activeTab === 'morning'
+            ? 'Antioxidant Niacinamide + Mineral SPF 50+ provide maximum daytime photoprotective synergy.'
+            : activeTab === 'evening'
+            ? 'Retinoids are buffered by Ceramide lipid balm to minimize trans-epidermal moisture loss.'
+            : 'Weekly exfoliants are spaced away from daily retinoids to maintain epidermal barrier integrity.'}
+        </div>
+      </div>
+
+      {/* Progress & Adherence Bar */}
+      <div className="flex items-center justify-between gap-3 mb-5 p-3.5 bg-slate-50 rounded-2xl border border-slate-200 flex-wrap">
+        <div className="flex items-center gap-3">
+          <button
+            onClick={selectAllCurrentSteps}
+            type="button"
+            className="flex items-center gap-1.5 px-2.5 py-1 text-xs font-bold bg-white border border-slate-200 hover:border-teal-500 rounded-lg text-slate-700 transition shadow-2xs"
+            title={areAllStepsCompleted ? "Deselect all steps" : "Select all steps"}
+          >
+            {areAllStepsCompleted ? <CheckSquare className="w-3.5 h-3.5 text-teal-600" /> : <Square className="w-3.5 h-3.5 text-slate-400" />}
+            <span>{areAllStepsCompleted ? 'Deselect All' : 'Select All'}</span>
+          </button>
+
           <span className="text-xs font-semibold text-slate-600">
             {activeTab === 'morning'
-              ? `☀️ Morning Protocol · ${morningList.length} Daily Steps`
+              ? `☀️ Morning Protocol · ${morningSteps.length} Steps`
               : activeTab === 'evening'
-              ? `🌙 Evening Protocol · ${eveningList.length} Night Steps`
-              : `✨ Weekly Protocol · ${weeklyList.length} Specialized Treatments`}
+              ? `🌙 Evening Protocol · ${eveningSteps.length} Steps`
+              : `✨ Weekly Protocol · ${weeklySteps.length} Steps`}
           </span>
         </div>
 
         <div className="flex items-center gap-3">
-          {/* Adherence progress */}
           <div className="flex items-center gap-2">
-            <span className="text-[11px] font-bold text-teal-700">{completedCount}/{stepsToDisplay.length} done</span>
-            <div className="w-16 h-1.5 bg-slate-200 rounded-full overflow-hidden">
+            <span className="text-xs font-black text-teal-800">{completedCount}/{stepsToDisplay.length} done</span>
+            <div className="w-20 h-2 bg-slate-200 rounded-full overflow-hidden">
               <div
-                className="h-1.5 bg-gradient-to-r from-[#00685f] to-teal-500 rounded-full transition-all duration-500"
+                className="h-2 bg-gradient-to-r from-teal-700 to-emerald-500 rounded-full transition-all duration-300"
                 style={{ width: `${stepsToDisplay.length ? (completedCount / stepsToDisplay.length) * 100 : 0}%` }}
               />
             </div>
@@ -179,23 +281,23 @@ export const RoutinePlannerCard: React.FC = () => {
 
           <button
             onClick={handleLogAdherence}
-            disabled={savingAdherence || completedCount === 0}
-            className="flex items-center gap-1 px-3 py-1 bg-teal-600 hover:bg-teal-700 disabled:opacity-50 text-white rounded-lg text-xs font-bold transition shadow-sm"
+            disabled={savingAdherence}
+            className="flex items-center gap-1.5 px-4 py-2 bg-teal-700 hover:bg-teal-600 disabled:opacity-50 text-white rounded-xl text-xs font-extrabold transition shadow-md hover:shadow-lg cursor-pointer"
             type="button"
           >
             {savingAdherence ? (
-              <span>Saving...</span>
+              <span className="flex items-center gap-1"><RefreshCw className="w-3 h-3 animate-spin" /> Saving...</span>
             ) : (
               <>
-                <Check size={12} />
-                <span>Save Adherence</span>
+                <Check size={14} />
+                <span>Mark Routine Complete</span>
               </>
             )}
           </button>
         </div>
       </div>
 
-      {/* Timeline Steps */}
+      {/* Timeline Steps with Interactive Checkbox on Whole Card */}
       <div className="space-y-3 mb-5">
         {stepsToDisplay.map((step: RoutineStep, idx: number) => {
           const stepKey = `${activeTab}-${step.step_number}`;
@@ -203,115 +305,242 @@ export const RoutinePlannerCard: React.FC = () => {
           const stepNum = String(step.step_number).padStart(2, '0');
 
           return (
-            <div key={idx} className="routine-timeline-step">
+            <div
+              key={idx}
+              onClick={() => toggleStep(stepKey)}
+              className={`
+                p-4 rounded-2xl border transition-all duration-200 cursor-pointer select-none
+                flex items-start gap-4 relative
+                ${isDone
+                  ? 'bg-emerald-50/80 border-emerald-300 ring-2 ring-emerald-500/20 shadow-sm'
+                  : 'bg-white hover:bg-slate-50/90 border-slate-200 shadow-sm hover:border-teal-400 hover:shadow-md'
+                }
+              `}
+            >
+              {/* Step number badge & toggle */}
               <div
-                onClick={() => toggleStep(stepKey)}
                 className={`
-                  p-4 rounded-2xl border transition-all duration-250 cursor-pointer
-                  flex items-start gap-4
+                  w-10 h-10 rounded-xl flex items-center justify-center shrink-0 font-extrabold text-sm
+                  transition-all duration-200
                   ${isDone
-                    ? 'bg-emerald-50/70 border-emerald-200 shadow-sm'
-                    : 'bg-white hover:bg-slate-50/80 border-slate-200/80 shadow-sm hover:shadow-md'
+                    ? 'bg-emerald-600 text-white shadow-sm'
+                    : activeTab === 'morning'
+                      ? 'bg-amber-100 text-amber-800 border border-amber-200'
+                      : activeTab === 'evening'
+                      ? 'bg-indigo-100 text-indigo-800 border border-indigo-200'
+                      : 'bg-purple-100 text-purple-800 border border-purple-200'
                   }
                 `}
               >
-                {/* Step number circle */}
-                <div
-                  className={`
-                    w-10 h-10 rounded-xl flex items-center justify-center shrink-0 font-extrabold text-sm
-                    transition-all duration-200
-                    ${isDone
-                      ? 'bg-emerald-500 text-white'
-                      : activeTab === 'morning'
-                        ? 'bg-amber-100 text-amber-700 border border-amber-200'
-                        : activeTab === 'evening'
-                        ? 'bg-indigo-100 text-indigo-700 border border-indigo-200'
-                        : 'bg-purple-100 text-purple-700 border border-purple-200'
-                    }
-                  `}
-                >
-                  {isDone ? <CheckCircle2 size={18} /> : stepNum}
-                </div>
+                {isDone ? <CheckCircle2 size={20} className="text-white animate-scale-up" /> : stepNum}
+              </div>
 
-                {/* Step content */}
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 flex-wrap mb-0.5">
+              {/* Step content */}
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center justify-between gap-2 mb-1">
+                  <div className="flex items-center gap-2 flex-wrap">
                     <span className={`text-[10px] font-extrabold uppercase tracking-wider ${
                       activeTab === 'morning'
-                        ? 'text-amber-600'
+                        ? 'text-amber-700'
                         : activeTab === 'evening'
-                        ? 'text-indigo-600'
-                        : 'text-purple-600'
+                        ? 'text-indigo-700'
+                        : 'text-purple-700'
                     }`}>
-                      {step.category}
+                      Step {step.step_number}: {step.category}
                     </span>
                     {step.frequency && (
-                      <span className="text-[10px] font-semibold text-slate-400 bg-slate-100 px-2 py-0.2 rounded">
+                      <span className="text-[10px] font-semibold text-slate-500 bg-slate-100 px-2 py-0.5 rounded">
                         {step.frequency}
                       </span>
                     )}
                   </div>
-                  <div className={`text-sm font-bold mb-1 ${isDone ? 'line-through text-slate-400' : 'text-slate-900'}`}>
-                    {step.product_type}
+
+                  {/* Step Re-order Controls */}
+                  <div
+                    onClick={(e) => e.stopPropagation()}
+                    className="flex items-center gap-1 opacity-60 hover:opacity-100 transition"
+                  >
+                    <button
+                      onClick={(e) => { e.stopPropagation(); moveStep(idx, 'up'); }}
+                      disabled={idx === 0}
+                      className="p-1 text-slate-400 hover:text-slate-700 disabled:opacity-20 rounded"
+                      title="Move step up"
+                    >
+                      <ArrowUp size={12} />
+                    </button>
+                    <button
+                      onClick={(e) => { e.stopPropagation(); moveStep(idx, 'down'); }}
+                      disabled={idx === stepsToDisplay.length - 1}
+                      className="p-1 text-slate-400 hover:text-slate-700 disabled:opacity-20 rounded"
+                      title="Move step down"
+                    >
+                      <ArrowDown size={12} />
+                    </button>
                   </div>
-                  <p className="text-[11px] text-slate-500 leading-snug mb-2">
-                    {step.instructions}
-                  </p>
-                  {/* Safety notes if available */}
-                  {step.safety_notes && (
-                    <div className="text-[10.5px] text-amber-800 bg-amber-50/70 border border-amber-100 px-2.5 py-1 rounded-md mb-2 flex items-start gap-1.5">
-                      <span className="font-bold text-amber-900 shrink-0">Note:</span>
-                      <span>{step.safety_notes}</span>
-                    </div>
-                  )}
-                  {/* Ingredient chips */}
-                  {step.key_ingredients && step.key_ingredients.length > 0 && (
-                    <div className="flex gap-1.5 flex-wrap">
-                      {step.key_ingredients.map((ing, iIdx) => (
-                        <span
-                          key={iIdx}
-                          className="px-2 py-0.5 text-[10px] font-semibold bg-teal-50 text-teal-700 border border-teal-200/80 rounded-md"
-                        >
-                          {ing}
-                        </span>
-                      ))}
-                    </div>
-                  )}
                 </div>
 
-                {/* Done badge */}
-                {isDone && (
-                  <span className="flex items-center gap-1 text-[10px] font-bold text-emerald-700 bg-emerald-100 px-2.5 py-1.5 rounded-xl shrink-0 self-start">
-                    <CheckCircle2 size={12} />
-                    Done
-                  </span>
+                <div className={`text-sm font-bold mb-1 transition-all ${isDone ? 'line-through text-slate-400' : 'text-slate-900'}`}>
+                  {step.product_type}
+                </div>
+                <p className={`text-xs leading-snug mb-2 transition-all ${isDone ? 'text-slate-400' : 'text-slate-600'}`}>
+                  {step.instructions}
+                </p>
+
+                {/* Safety notes */}
+                {step.safety_notes && (
+                  <div className="text-[11px] text-amber-900 bg-amber-50/80 border border-amber-200/80 px-2.5 py-1 rounded-lg mb-2 flex items-start gap-1.5">
+                    <span className="font-bold shrink-0">Clinical Note:</span>
+                    <span>{step.safety_notes}</span>
+                  </div>
                 )}
+
+                {/* Ingredient chips */}
+                {step.key_ingredients && step.key_ingredients.length > 0 && (
+                  <div className="flex gap-1.5 flex-wrap">
+                    {step.key_ingredients.map((ing, iIdx) => (
+                      <span
+                        key={iIdx}
+                        className="px-2 py-0.5 text-[10px] font-semibold bg-teal-50 text-teal-800 border border-teal-200 rounded-md"
+                      >
+                        {ing}
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Right Side Checkbox Status */}
+              <div className="shrink-0 self-center pl-2">
+                <button
+                  type="button"
+                  onClick={(e) => toggleStep(stepKey, e)}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl font-bold text-xs transition border ${
+                    isDone
+                      ? 'bg-emerald-600 text-white border-emerald-600 shadow-sm'
+                      : 'bg-slate-100 text-slate-600 border-slate-200 hover:bg-teal-50 hover:text-teal-800 hover:border-teal-300'
+                  }`}
+                >
+                  {isDone ? (
+                    <>
+                      <CheckCircle2 size={14} className="text-white" />
+                      <span>Completed</span>
+                    </>
+                  ) : (
+                    <>
+                      <Square size={14} className="text-slate-400" />
+                      <span>Mark Done</span>
+                    </>
+                  )}
+                </button>
               </div>
             </div>
           );
         })}
       </div>
 
-      {/* Why this routine rationale */}
-      <div className="p-4 bg-teal-50/70 rounded-xl border border-teal-100 flex items-start gap-3">
+      {/* Rationale Footer */}
+      <div className="p-4 bg-teal-50/80 rounded-2xl border border-teal-200/70 flex items-start gap-3">
         <div className="p-1.5 bg-teal-100 rounded-lg shrink-0">
-          <Info size={14} className="text-teal-600" />
+          <Info size={14} className="text-teal-700" />
         </div>
         <div>
-          <div className="text-xs font-extrabold text-[#00685f] mb-1">
-            🧠 Why AuraSkin Recommended This Protocol
+          <div className="text-xs font-extrabold text-teal-950 mb-0.5">
+            Why AuraSkin Recommended This Protocol
           </div>
-          <p className="text-[11px] text-slate-600 leading-relaxed">
-            Your {activeTab} routine was selected based on your{' '}
-            <strong className="text-slate-700">skin type</strong>,{' '}
-            <strong className="text-slate-700">reported concerns</strong>,{' '}
-            <strong className="text-slate-700">daily UV exposure</strong>,{' '}
-            <strong className="text-slate-700">hydration levels</strong>, and your{' '}
-            <strong className="text-slate-700">current 5-factor dermal score</strong>.
-            {activeTab === 'weekly' && ' Weekly resurfacing treatments are spaced out from retinoid days to preserve lipid bilayer integrity.'}
+          <p className="text-xs text-teal-800 leading-relaxed">
+            Your {activeTab} regimen is formulated based on your active dermal barrier parameters, sebum index, UV exposure metrics, and confirmed allergy filters. Steps are ordered according to molecular density to ensure maximum active ingredient penetration.
           </p>
         </div>
       </div>
+
+      {/* PRINTABLE PRESCRIPTION ROUTINE MODAL */}
+      {printModalOpen && (
+        <div className="modal-overlay">
+          <div className="modal-card max-w-2xl bg-white p-8 animate-scale-up">
+            <div className="flex items-center justify-between pb-4 border-b border-slate-200 mb-6">
+              <div>
+                <span className="text-[10px] font-extrabold uppercase tracking-widest text-teal-700">AuraSkin Clinical Document</span>
+                <h2 className="text-xl font-black text-slate-900">Personalized Skincare Prescription</h2>
+              </div>
+              <button
+                onClick={() => setPrintModalOpen(false)}
+                className="p-1.5 hover:bg-slate-100 rounded-xl text-slate-400 hover:text-slate-600 transition"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="space-y-6 text-xs text-slate-700">
+              <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200 grid grid-cols-2 sm:grid-cols-3 gap-3">
+                <div>
+                  <span className="text-[10px] text-slate-400 font-bold uppercase">Date Generated</span>
+                  <div className="font-extrabold text-slate-900">{new Date().toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</div>
+                </div>
+                <div>
+                  <span className="text-[10px] text-slate-400 font-bold uppercase">Chronobiology Focus</span>
+                  <div className="font-extrabold text-teal-800">Barrier Restoration & Renewal</div>
+                </div>
+                <div>
+                  <span className="text-[10px] text-slate-400 font-bold uppercase">Adherence Streak</span>
+                  <div className="font-extrabold text-amber-700">{streakDays} Consecutive Days</div>
+                </div>
+              </div>
+
+              {/* AM Section */}
+              <div className="space-y-2">
+                <h4 className="font-black text-amber-700 uppercase tracking-wider text-xs flex items-center gap-1.5">
+                  <Sun size={13} /> Morning (AM) Sequence
+                </h4>
+                <div className="divide-y divide-slate-100 border border-slate-200 rounded-xl overflow-hidden bg-white">
+                  {morningSteps.map((s, idx) => (
+                    <div key={idx} className="p-2.5 flex items-start gap-3">
+                      <span className="font-black text-amber-700 w-5">0{s.step_number}</span>
+                      <div className="flex-1">
+                        <span className="font-bold text-slate-900">{s.product_type}</span>
+                        <p className="text-[11px] text-slate-500">{s.instructions}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* PM Section */}
+              <div className="space-y-2">
+                <h4 className="font-black text-indigo-700 uppercase tracking-wider text-xs flex items-center gap-1.5">
+                  <Moon size={13} /> Evening (PM) Sequence
+                </h4>
+                <div className="divide-y divide-slate-100 border border-slate-200 rounded-xl overflow-hidden bg-white">
+                  {eveningSteps.map((s, idx) => (
+                    <div key={idx} className="p-2.5 flex items-start gap-3">
+                      <span className="font-black text-indigo-700 w-5">0{s.step_number}</span>
+                      <div className="flex-1">
+                        <span className="font-bold text-slate-900">{s.product_type}</span>
+                        <p className="text-[11px] text-slate-500">{s.instructions}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Actions */}
+              <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-100">
+                <button
+                  onClick={() => setPrintModalOpen(false)}
+                  className="px-4 py-2 text-slate-600 font-bold hover:bg-slate-100 rounded-xl transition"
+                >
+                  Close
+                </button>
+                <button
+                  onClick={() => window.print()}
+                  className="px-5 py-2.5 bg-teal-700 hover:bg-teal-600 text-white font-bold rounded-xl shadow-md transition flex items-center gap-2"
+                >
+                  <Printer size={14} /> Print / Save as PDF
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { api, User, Role, PlatformAnalytics } from '../services/api';
+import { api, User, Role, VerificationStatus, PlatformAnalytics } from '../services/api';
 import { useToast } from '../context/ToastContext';
-import { Shield, Trash2, Search, RefreshCw, CheckCircle, XCircle, BarChart3, Users, Clock, Loader2, AlertTriangle, Briefcase } from 'lucide-react';
+import { Shield, Trash2, Search, RefreshCw, CheckCircle, XCircle, BarChart3, Users, Clock, Loader2, AlertTriangle, Briefcase, MessageSquare, Send, Mail, Settings, X, Eye } from 'lucide-react';
 
 export const AdminPortal: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'USERS' | 'PENDING' | 'ANALYTICS'>('USERS');
@@ -16,6 +16,19 @@ export const AdminPortal: React.FC = () => {
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
   const [actionId, setActionId] = useState<number | null>(null);
   const { showSuccess, showError } = useToast();
+
+  // Contact Modal State
+  const [contactUser, setContactUser] = useState<User | null>(null);
+  const [advisoryType, setAdvisoryType] = useState<string>('ADMINISTRATIVE_NOTICE');
+  const [contactSubject, setContactSubject] = useState<string>('');
+  const [contactMessage, setContactMessage] = useState<string>('');
+  const [sendingNotice, setSendingNotice] = useState<boolean>(false);
+
+  // Role Modal State
+  const [roleModalUser, setRoleModalUser] = useState<User | null>(null);
+  const [targetRole, setTargetRole] = useState<Role>('USER');
+  const [targetStatus, setTargetStatus] = useState<VerificationStatus>('VERIFIED');
+  const [savingRole, setSavingRole] = useState<boolean>(false);
 
   const loadData = async () => {
     setLoading(true);
@@ -38,6 +51,57 @@ export const AdminPortal: React.FC = () => {
   useEffect(() => {
     loadData();
   }, []);
+
+  const handleOpenContact = (targetU: User) => {
+    setContactUser(targetU);
+    setAdvisoryType('ADMINISTRATIVE_NOTICE');
+    setContactSubject(`Administrative Directive regarding ${targetU.role}`);
+    setContactMessage(`Dear ${targetU.name},\n\nPlease review this official administrative communication regarding your account on AuraSkin.`);
+  };
+
+  const handleSendAdminNotice = async () => {
+    if (!contactUser) return;
+    if (!contactSubject.trim() || !contactMessage.trim()) {
+      showError('Please provide both a subject and message.');
+      return;
+    }
+    setSendingNotice(true);
+    try {
+      await api.adminContactUser({
+        target_user_id: contactUser.id,
+        subject: contactSubject,
+        message: contactMessage,
+        advisory_type: advisoryType,
+      });
+      showSuccess(`✓ Official administrative advisory dispatched to ${contactUser.name}!`);
+      setContactUser(null);
+    } catch (err: any) {
+      showError(err.message || 'Failed to dispatch notice.');
+    } finally {
+      setSendingNotice(false);
+    }
+  };
+
+  const handleOpenRoleModal = (targetU: User) => {
+    setRoleModalUser(targetU);
+    setTargetRole(targetU.role);
+    setTargetStatus(targetU.verification_status);
+  };
+
+  const handleSaveRoleChange = async () => {
+    if (!roleModalUser) return;
+    setSavingRole(true);
+    try {
+      await api.updateAdminUserRole(roleModalUser.id, targetRole, targetStatus);
+      showSuccess(`✓ User #${roleModalUser.id} role updated to ${targetRole}.`);
+      setRoleModalUser(null);
+      loadData();
+    } catch (err: any) {
+      showError(err.message || 'Failed to update user role.');
+    } finally {
+      setSavingRole(false);
+    }
+  };
 
   const handleDeleteUser = async (id: number) => {
     if (!window.confirm('Are you sure you want to delete this user? All their profiles and tracking records will be removed.')) {
@@ -310,7 +374,48 @@ export const AdminPortal: React.FC = () => {
                         </span>
                       </td>
                       <td style={{ padding: '0.85rem 1rem', textAlign: 'right' }}>
-                        <div style={{ display: 'flex', gap: '0.4rem', justifyContent: 'flex-end' }}>
+                        <div style={{ display: 'flex', gap: '0.4rem', justifyContent: 'flex-end', flexWrap: 'wrap' }}>
+                          {/* Direct Administrative Contact Button */}
+                          <button
+                            type="button"
+                            onClick={() => handleOpenContact(u)}
+                            className="btn-secondary"
+                            style={{
+                              background: 'rgba(225, 29, 72, 0.08)',
+                              color: 'var(--color-rose)',
+                              borderColor: 'rgba(225, 29, 72, 0.25)',
+                              padding: '0.35rem 0.65rem',
+                              fontSize: '0.8rem',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '0.3rem',
+                              fontWeight: 700
+                            }}
+                            title={`Send direct administrative message / notice to ${u.name}`}
+                          >
+                            <MessageSquare size={13} />
+                            <span>Notice</span>
+                          </button>
+
+                          {/* Role Modification Button */}
+                          <button
+                            type="button"
+                            onClick={() => handleOpenRoleModal(u)}
+                            className="btn-secondary"
+                            style={{
+                              padding: '0.35rem 0.65rem',
+                              fontSize: '0.8rem',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '0.3rem',
+                              fontWeight: 600
+                            }}
+                            title="Change Role & Permissions"
+                          >
+                            <Settings size={13} />
+                            <span>Role</span>
+                          </button>
+
                           {/* Approve and Reject Action Buttons in Table Row */}
                           {u.verification_status === 'PENDING' && (
                             <>
@@ -395,7 +500,17 @@ export const AdminPortal: React.FC = () => {
                   )}
                 </div>
 
-                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                  <button
+                    type="button"
+                    onClick={() => handleOpenContact(p)}
+                    className="btn-secondary"
+                    style={{ padding: '0.45rem 0.9rem', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '0.35rem' }}
+                  >
+                    <MessageSquare size={14} />
+                    <span>Inquire / Message</span>
+                  </button>
+
                   <button
                     type="button"
                     onClick={() => handleVerifyProfessional(p.id, 'VERIFIED')}
@@ -451,6 +566,174 @@ export const AdminPortal: React.FC = () => {
             <h5 style={{ fontSize: '0.85rem', textTransform: 'uppercase', color: 'var(--text-muted)', margin: 0 }}>Average Skin Health Score</h5>
             <div style={{ fontSize: '2.2rem', fontWeight: 800, color: '#10b981', marginTop: '0.25rem' }}>
               {analytics.average_skin_health_score} <span style={{ fontSize: '0.9rem' }}>/ 100</span>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* MODAL 1: DIRECT ADMIN CONTACT / ADVISORY                                  */}
+      {/* ========================================================================= */}
+      {contactUser && (
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl border border-slate-200 space-y-5 animate-scale-up text-xs">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-200">
+              <div className="flex items-center gap-2">
+                <Mail className="text-rose-700" size={18} />
+                <h3 className="text-base font-black text-slate-900">
+                  Dispatch Administrative Notice
+                </h3>
+              </div>
+              <button
+                onClick={() => setContactUser(null)}
+                className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600"
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            <div className="bg-slate-50 p-3 rounded-xl border border-slate-200 space-y-1">
+              <span className="font-bold text-slate-800 block">Recipient: {contactUser.name}</span>
+              <span className="text-slate-500">{contactUser.email} • Role: <strong>{contactUser.role}</strong></span>
+            </div>
+
+            <div className="space-y-3">
+              <div>
+                <label className="font-extrabold text-slate-800 block mb-1.5">
+                  Advisory Classification:
+                </label>
+                <select
+                  value={advisoryType}
+                  onChange={(e) => setAdvisoryType(e.target.value)}
+                  className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl font-semibold text-slate-700"
+                >
+                  <option value="ADMINISTRATIVE_NOTICE">General Administrative Directive</option>
+                  <option value="COMPLIANCE_INQUIRY">Regulatory Compliance & License Check</option>
+                  <option value="URGENT_ACTION_REQUIRED">Urgent Account / Policy Action Required</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="font-extrabold text-slate-800 block mb-1.5">
+                  Subject Line:
+                </label>
+                <input
+                  type="text"
+                  value={contactSubject}
+                  onChange={(e) => setContactSubject(e.target.value)}
+                  placeholder="e.g. Action Required: Verification Followup"
+                  className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl font-medium focus:outline-rose-600"
+                />
+              </div>
+
+              <div>
+                <label className="font-extrabold text-slate-800 block mb-1.5">
+                  Official Communication Body:
+                </label>
+                <textarea
+                  rows={4}
+                  value={contactMessage}
+                  onChange={(e) => setContactMessage(e.target.value)}
+                  placeholder="Type administrative advisory, compliance guidelines, or directives..."
+                  className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl font-medium focus:outline-rose-600 leading-relaxed"
+                />
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-200">
+              <button
+                onClick={() => setContactUser(null)}
+                className="btn-secondary text-xs px-4 py-2 font-bold"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSendAdminNotice}
+                disabled={sendingNotice}
+                className="btn-primary text-xs px-5 py-2.5 font-extrabold bg-rose-600 hover:bg-rose-500 text-white shadow-md flex items-center gap-1.5"
+              >
+                {sendingNotice ? <Loader2 size={13} className="animate-spin" /> : <Send size={13} />}
+                Dispatch Official Advisory
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* MODAL 2: UPDATE USER ROLE                                                */}
+      {/* ========================================================================= */}
+      {roleModalUser && (
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-200 space-y-5 animate-scale-up text-xs">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-200">
+              <div className="flex items-center gap-2">
+                <Settings className="text-slate-800" size={18} />
+                <h3 className="text-base font-black text-slate-900">
+                  Update Account Permissions
+                </h3>
+              </div>
+              <button
+                onClick={() => setRoleModalUser(null)}
+                className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600"
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            <div className="bg-slate-50 p-3 rounded-xl border border-slate-200 space-y-1">
+              <span className="font-bold text-slate-800 block">User: {roleModalUser.name}</span>
+              <span className="text-slate-500">{roleModalUser.email}</span>
+            </div>
+
+            <div className="space-y-3">
+              <div>
+                <label className="font-extrabold text-slate-800 block mb-1.5">
+                  Platform Role:
+                </label>
+                <select
+                  value={targetRole}
+                  onChange={(e) => setTargetRole(e.target.value as Role)}
+                  className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl font-semibold text-slate-700"
+                >
+                  <option value="USER">Client / End User</option>
+                  <option value="SKINCARE_CONSULTANT">Skincare Consultant</option>
+                  <option value="DERMATOLOGIST">Board Certified Dermatologist</option>
+                  <option value="ADMIN">System Administrator</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="font-extrabold text-slate-800 block mb-1.5">
+                  Account Verification Status:
+                </label>
+                <select
+                  value={targetStatus}
+                  onChange={(e) => setTargetStatus(e.target.value as VerificationStatus)}
+                  className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl font-semibold text-slate-700"
+                >
+                  <option value="VERIFIED">Verified / Active</option>
+                  <option value="PENDING">Pending Credential Review</option>
+                  <option value="REJECTED">Rejected / Suspended</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-200">
+              <button
+                onClick={() => setRoleModalUser(null)}
+                className="btn-secondary text-xs px-4 py-2 font-bold"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSaveRoleChange}
+                disabled={savingRole}
+                className="btn-primary text-xs px-5 py-2.5 font-extrabold shadow-md flex items-center gap-1.5"
+              >
+                {savingRole ? <Loader2 size={13} className="animate-spin" /> : <CheckCircle size={13} />}
+                Save Changes
+              </button>
             </div>
           </div>
         </div>

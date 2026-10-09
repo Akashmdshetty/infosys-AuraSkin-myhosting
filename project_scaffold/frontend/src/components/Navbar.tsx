@@ -34,8 +34,16 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, onTabChange, onOpenAu
     }
   }, [isAuthenticated]);
 
+  const getDashboardLabel = () => {
+    if (!user) return 'Dashboard';
+    if (user.role === 'ADMIN') return 'Admin Hub';
+    if (user.role === 'SKINCARE_CONSULTANT') return 'Consultant Hub';
+    if (user.role === 'DERMATOLOGIST') return 'Clinical Board';
+    return 'Dashboard';
+  };
+
   const navTabs = [
-    { id: 'dashboard', label: 'Dashboard' },
+    { id: 'dashboard', label: getDashboardLabel() },
     ...(isAuthenticated
       ? [
           { id: 'products', label: 'Products' },
@@ -66,7 +74,7 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, onTabChange, onOpenAu
               <div className="flex items-center gap-1.5">
                 <span>AuraSkin</span>
                 <span className="text-[10px] px-1.5 py-0.2 bg-teal-50 text-teal-700 rounded-md font-bold border border-teal-200">
-                  PRO
+                  {user?.role === 'ADMIN' ? 'ADMIN' : user?.role === 'DERMATOLOGIST' ? 'CLINICAL' : user?.role === 'SKINCARE_CONSULTANT' ? 'SPECIALIST' : 'PRO'}
                 </span>
               </div>
             </div>
@@ -115,10 +123,17 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, onTabChange, onOpenAu
                   onClick={() => onTabChange('profile')}
                   className="hidden sm:flex items-center gap-2 py-1.5 px-3 rounded-xl border border-slate-200/80 bg-slate-50 hover:bg-slate-100 cursor-pointer transition"
                 >
-                  <div className="w-5 h-5 rounded-full bg-teal-600 text-white flex items-center justify-center text-[10px] font-bold">
+                  <div className={`w-5 h-5 rounded-full text-white flex items-center justify-center text-[10px] font-bold ${
+                    user.role === 'ADMIN' ? 'bg-rose-600' : user.role === 'DERMATOLOGIST' ? 'bg-sky-600' : user.role === 'SKINCARE_CONSULTANT' ? 'bg-amber-600' : 'bg-teal-600'
+                  }`}>
                     {user.name.charAt(0).toUpperCase()}
                   </div>
-                  <span className="text-xs font-bold text-slate-800 max-w-[120px] truncate">{user.name}</span>
+                  <div className="flex flex-col text-left">
+                    <span className="text-xs font-bold text-slate-800 max-w-[120px] truncate leading-tight">{user.name}</span>
+                    <span className="text-[9px] font-semibold text-slate-400 capitalize">
+                      {user.role === 'ADMIN' ? 'Admin' : user.role === 'DERMATOLOGIST' ? 'Dermatologist' : user.role === 'SKINCARE_CONSULTANT' ? 'Consultant' : 'Client'}
+                    </span>
+                  </div>
                 </div>
 
                 {/* Sign Out */}
@@ -132,6 +147,7 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, onTabChange, onOpenAu
                 </button>
               </div>
             ) : (
+
               <button
                 onClick={onOpenAuth}
                 className="btn-primary text-xs px-4 py-2"

@@ -271,6 +271,85 @@ export interface ClientOverviewResponse {
   average_adherence_pct: number;
 }
 
+export interface ClientSkinProfileDetail {
+  skin_type: string;
+  concerns: string[];
+  allergies: string[];
+  sensitivities: string[];
+  lifestyle_sleep?: number | null;
+  lifestyle_hydration?: number | null;
+  lifestyle_stress?: string | null;
+  lifestyle_sun_exposure?: string | null;
+}
+
+export interface ClientDetailedSummary {
+  id: number;
+  name: string;
+  email: string;
+  age?: number | null;
+  country?: string | null;
+  created_at: string;
+  skin_profile: ClientSkinProfileDetail;
+  latest_score?: number | null;
+  latest_primary_concern?: string | null;
+  assessment_confidence?: number | null;
+  total_progress_snapshots: number;
+  total_routines: number;
+  total_consultations: number;
+  pending_consultations: number;
+  clinical_risk_tier: 'HIGH' | 'MODERATE' | 'LOW';
+}
+
+export interface RecommendRoutinePayload {
+  morning_routine: Array<{
+    step_number?: number;
+    step_name: string;
+    product_category?: string;
+    instructions?: string;
+    key_active_ingredients?: string[];
+  }>;
+  evening_routine: Array<{
+    step_number?: number;
+    step_name: string;
+    product_category?: string;
+    instructions?: string;
+    key_active_ingredients?: string[];
+  }>;
+  weekly_routine?: Array<{
+    step_number?: number;
+    step_name: string;
+    frequency?: string;
+    instructions?: string;
+  }>;
+  safety_notes?: string;
+  seasonal_notes?: string;
+  specialist_guidance?: string;
+  clinical_followup_weeks?: number;
+}
+
+export interface RecommendProductsPayload {
+  product_ids: number[];
+  notes?: string;
+  usage_schedule?: Record<string, string>;
+}
+
+export interface IngredientRecommendationItem {
+  name: string;
+  category?: string;
+  concentration?: string;
+  frequency?: string;
+  target_concern: string;
+  application_notes?: string;
+}
+
+export interface RecommendIngredientsPayload {
+  ingredients: IngredientRecommendationItem[];
+  clinical_guidance?: string;
+  contraindications_to_avoid?: string[];
+}
+
+
+
 export interface ConsultationRequest {
   id: number;
   client_id: number;
@@ -809,7 +888,29 @@ export const api = {
   // Professional APIs
   getProfessionalDirectory: () => request<User[]>('/professional/directory'),
   getProfessionalClients: () => request<User[]>('/professional/clients'),
+  getDetailedClients: () => request<ClientDetailedSummary[]>('/professional/clients-detailed'),
+  getClientFullDossier: (clientId: number) => request<any>(`/professional/clients/${clientId}/full-dossier`),
+  recommendRoutine: (clientId: number, payload: RecommendRoutinePayload) =>
+    request<{ success: boolean; routine_id: number; message: string }>(`/professional/clients/${clientId}/recommend-routine`, {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    }),
+  recommendProducts: (clientId: number, payload: RecommendProductsPayload) =>
+    request<{ success: boolean; recommended_count: number; message: string }>(`/professional/clients/${clientId}/recommend-products`, {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    }),
+  recommendIngredients: (clientId: number, payload: RecommendIngredientsPayload) =>
+    request<{ success: boolean; ingredient_count: number; message: string }>(`/professional/clients/${clientId}/recommend-ingredients`, {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    }),
   getClientReport: (clientId: number) => request<SkinIntelligenceReport>(`/professional/client-report/${clientId}`),
+  initiateClientContact: (clientId: number, data: { subject: string; message: string; priority_flag?: string }) =>
+    request<ConsultationRequest>(`/professional/clients/${clientId}/initiate-contact`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
   createConsultationRequest: (data: { professional_id: number; subject: string; message: string; primary_concern?: string }) =>
     request<ConsultationRequest>('/professional/consultations', {
       method: 'POST',
@@ -825,9 +926,27 @@ export const api = {
   // Admin APIs
   getAdminUsers: () => request<User[]>('/admin/users'),
 
+  adminContactUser: (data: { target_user_id: number; subject: string; message: string; advisory_type?: string }) =>
+    request<ConsultationRequest>('/admin/contact-user', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+
   deleteAdminUser: (userId: number) =>
     request<{ detail: string }>(`/admin/users/${userId}`, {
       method: 'DELETE',
+    }),
+
+  updateAdminUserRole: (userId: number, role: Role, statusChoice?: VerificationStatus) =>
+    request<User>(`/admin/users/${userId}/role`, {
+      method: 'PATCH',
+      body: JSON.stringify({ role, verification_status: statusChoice }),
+    }),
+
+  updateAdminUserStatus: (userId: number, statusChoice: VerificationStatus) =>
+    request<User>(`/admin/users/${userId}/status`, {
+      method: 'PATCH',
+      body: JSON.stringify({ status: statusChoice }),
     }),
 
   getPendingProfessionals: () => request<User[]>('/admin/pending-professionals'),
@@ -839,6 +958,7 @@ export const api = {
     }),
 
   getPlatformAnalytics: () => request<PlatformAnalytics>('/admin/analytics'),
+
 
   // Milestone 4 Notifications & Reminders APIs
   getNotifications: (params?: { unread_only?: boolean; notification_type?: string; limit?: number; offset?: number }) => {

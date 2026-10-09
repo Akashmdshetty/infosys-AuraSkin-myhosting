@@ -8,7 +8,8 @@ import {
   SkinAssessment,
 } from '../services/api';
 import { AdminPortal } from '../components/AdminPortal';
-import { ProfessionalPortal } from '../components/ProfessionalPortal';
+import { ConsultantDashboardView } from '../components/ConsultantDashboardView';
+import { DermatologistDashboardView } from '../components/DermatologistDashboardView';
 import { ContactProfessionalModal } from '../components/ContactProfessionalModal';
 import { PortalHeader } from '../components/PortalHeader';
 import { PortalSummaryCards } from '../components/PortalSummaryCards';
@@ -109,9 +110,14 @@ export const PortalsPage: React.FC = () => {
       {/* Admin Role Portal View */}
       {user.role === 'ADMIN' && <AdminPortal />}
 
-      {/* Professional Specialist Role Portal View */}
-      {(user.role === 'SKINCARE_CONSULTANT' || user.role === 'DERMATOLOGIST') && (
-        <ProfessionalPortal />
+      {/* Skincare Consultant Workspace */}
+      {user.role === 'SKINCARE_CONSULTANT' && (
+        <ConsultantDashboardView onNavigate={() => {}} />
+      )}
+
+      {/* Board Certified Dermatologist Clinical Board */}
+      {user.role === 'DERMATOLOGIST' && (
+        <DermatologistDashboardView onNavigate={() => {}} />
       )}
 
       {/* Client / User Experience */}

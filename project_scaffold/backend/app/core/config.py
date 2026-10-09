@@ -29,7 +29,10 @@ class Settings(BaseSettings):
     @property
     def DATABASE_URL(self) -> str:
         if self.DATABASE_URL_OVERRIDE and self.DATABASE_URL_OVERRIDE.strip():
-            return self.DATABASE_URL_OVERRIDE.strip()
+            url = self.DATABASE_URL_OVERRIDE.strip()
+            if url.startswith("postgres://"):
+                url = url.replace("postgres://", "postgresql://", 1)
+            return url
         return f"postgresql://{self.POSTGRES_USER}:{self.POSTGRES_PASSWORD}@{self.POSTGRES_HOST}:{self.POSTGRES_PORT}/{self.POSTGRES_DB}"
 
     @property
@@ -49,7 +52,8 @@ class Settings(BaseSettings):
         "http://localhost:3000",
         "http://127.0.0.1:3000",
         "http://localhost:80",
-        "http://127.0.0.1:80"
+        "http://127.0.0.1:80",
+        "https://*.onrender.com"
     ]
 
     @field_validator("ALLOWED_ORIGINS", mode="before")
@@ -63,6 +67,7 @@ class Settings(BaseSettings):
                 except Exception:
                     pass
             return [origin.strip() for origin in v_clean.split(",") if origin.strip()]
+        return v
         return v
 
     # Frontend URL for link generation
